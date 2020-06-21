@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--input", "-i", type=str, default='../input', help='test image folder')
 parser.add_argument("--result", "-r", type=str, default='../result', help='result folder')
 parser.add_argument("--model", "-m", type=str, default='Syn_img_lowlight_withnoise', help='model name')
-parser.add_argument("--com", "-c", type=int, default=1, help='output with/without origional image and mid result')
+parser.add_argument("--com", "-c", type=int, default=0, help='output with/without origional image and mid result')
 parser.add_argument("--highpercent", "-hp", type=int, default=95, help='should be in [85,100], linear amplification')
 parser.add_argument("--lowpercent", "-lp", type=int, default=5, help='should be in [0,15], rescale the range [p%,1] to [0, 1]')
 parser.add_argument("--gamma", "-g", type=int, default=8, help='should be in [6,10], increase the saturability')
@@ -38,16 +38,43 @@ lowpercent = arg.lowpercent
 highpercent = arg.highpercent
 maxrange = arg.maxrange/10.
 hsvgamma = arg.gamma/10.
+
+crop_size=512
+min_crop_size = 32
+
 for i in range(len(path)):
     img_A_path = path[i]
     img_A = utls.imread_color(img_A_path)
-    img_A = img_A[np.newaxis, :]
+    img_h, img_w, _ = img_A.shape
+    
 
     starttime = time.clock()
-    out_pred = mbllen.predict(img_A)
-    endtime = time.clock()
-    print('The ' + str(i+1)+'th image\'s Time:' +str(endtime-starttime)+'s.')
-    fake_B = out_pred[0, :, :, :3]
+    
+    shift_X = shift_Y = crop_size
+    out_plane = np.zeros((img_h, img_w, 3), dtype='float32')
+    
+    for x in range(0, img_w, shift_X):
+        for y in range(0, img_h, shift_Y):    
+                X_upper = min(x + shift_X, img_w)
+                Y_upper = min(y + shift_Y, img_h)
+                X_lower = max(0, X_upper-shift_X)
+                Y_lower = max(0, Y_upper-shift_Y)    
+                input_img = np.zeros((crop_size, crop_size,3))
+                size_Y = Y_upper - Y_lower
+                size_X = X_upper - X_lower
+                
+                input_img[:size_Y,:size_X,:] = img_A[Y_lower:Y_upper, X_lower:X_upper, :]
+                input_img = input_img[np.newaxis, :]
+                
+                out_pred = mbllen.predict(input_img)
+
+                out_plane[Y_lower:Y_upper, X_lower:X_upper, :] = out_pred[0, :size_Y, :size_X, :3]
+                endtime = time.clock()
+                print('The ' + str(i+1)+'th image\'s Time:' +str(endtime-starttime)+'s.')
+    
+    
+    # fake_B = out_pred[0, :, :, :3]
+    fake_B = out_plane
     fake_B_o = fake_B
 
     gray_fake_B = fake_B[:, :, 0] * 0.299 + fake_B[:, :, 1] * 0.587 + fake_B[:, :, 1] * 0.114
