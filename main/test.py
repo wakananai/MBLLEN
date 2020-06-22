@@ -34,7 +34,7 @@ if not os.path.isdir(result_folder):
     os.makedirs(result_folder)
 
 input_folder = arg.input
-path = glob(input_folder+'/*.*')
+path = sorted(glob(input_folder+'/*.*'))
 
 model_name = arg.model
 mbllen = Network.build_mbllen((None, None, 3))
