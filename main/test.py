@@ -8,6 +8,15 @@ import utls
 import time
 import cv2
 import argparse
+from tqdm import tqdm
+
+from keras.backend.tensorflow_backend import set_session
+import tensorflow as tf
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+sess = tf.Session(config=config)
+set_session(sess)  # set this TensorFlow session as the default session for Keras
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--input", "-i", type=str, default='../input', help='test image folder')
@@ -42,7 +51,7 @@ hsvgamma = arg.gamma/10.
 crop_size=512
 min_crop_size = 32
 
-for i in range(len(path)):
+for i in tqdm(range(len(path))):
     img_A_path = path[i]
     img_A = utls.imread_color(img_A_path)
     img_h, img_w, _ = img_A.shape
@@ -70,7 +79,7 @@ for i in range(len(path)):
 
                 out_plane[Y_lower:Y_upper, X_lower:X_upper, :] = out_pred[0, :size_Y, :size_X, :3]
                 endtime = time.clock()
-                print('The ' + str(i+1)+'th image\'s Time:' +str(endtime-starttime)+'s.')
+                # print('The ' + str(i+1)+'th image\'s Time:' +str(endtime-starttime)+'s.')
     
     
     # fake_B = out_pred[0, :, :, :3]
