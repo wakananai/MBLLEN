@@ -19,22 +19,36 @@ set_session(sess)  # set this TensorFlow session as the default session for Kera
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--input", "-i", type=str, default='../input', help='test image folder')
-parser.add_argument("--result", "-r", type=str, default='../result', help='result folder')
+parser.add_argument("--input", "-i", type=str, default=None, help='test image folder')
+parser.add_argument("--result", "-r", type=str, default=None, help='result folder')
 parser.add_argument("--model", "-m", type=str, default='Syn_img_lowlight_withnoise', help='model name')
 parser.add_argument("--com", "-c", type=int, default=0, help='output with/without origional image and mid result')
 parser.add_argument("--highpercent", "-hp", type=int, default=95, help='should be in [85,100], linear amplification')
 parser.add_argument("--lowpercent", "-lp", type=int, default=5, help='should be in [0,15], rescale the range [p%,1] to [0, 1]')
 parser.add_argument("--gamma", "-g", type=int, default=8, help='should be in [6,10], increase the saturability')
 parser.add_argument("--maxrange", "-mr", type=int, default=8, help='linear amplification range')
+parser.add_argument("--filelist", type=str, default=None, help='file list')
 arg = parser.parse_args()
 
 result_folder = arg.result
 if not os.path.isdir(result_folder):
     os.makedirs(result_folder)
 
-input_folder = arg.input
-path = sorted(glob(input_folder+'/*.*'))
+if arg.input and arg.filelist:
+    exit(f'only one arg can be activated, either --input ({arg.input}) or --filelist ({arg.filelist})')
+
+if arg.input:
+    input_folder = arg.input
+    path = sorted(glob(input_folder+'/*.*'))
+elif arg.filelist:
+    with open(arg.filelist, 'r') as f:
+        path = []
+        for i in f.readlines():
+            path.append(i.rstrip())
+    path = sorted(path)
+else:
+    exit(f'must provide either --input or --filelist')
+
 
 model_name = arg.model
 mbllen = Network.build_mbllen((None, None, 3))
